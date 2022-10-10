@@ -40,17 +40,7 @@ const (
 )
 
 func TestIndexCleaner_doNotFailOnEmptyStorage(t *testing.T) {
-	//create client based on ES/OpenSearch version
-	s := &ESStorageIntegration{}
-	esVersion, err := s.getVersion()
-	if err != nil {
-		return nil, err
-	}
-	if esVersion == 7 {
-		client, err := createES7Client()
-	} else {
-		client, err := createESClient()
-	}
+	client, err := createESClient()
 	require.NoError(t, err)
 	_, err = client.DeleteIndex("*").Do(context.Background())
 	require.NoError(t, err)
@@ -69,17 +59,7 @@ func TestIndexCleaner_doNotFailOnEmptyStorage(t *testing.T) {
 }
 
 func TestIndexCleaner_doNotFailOnFullStorage(t *testing.T) {
-	//create client based on ES/OpenSearch version
-	s := &ESStorageIntegration{}
-	esVersion, err := s.getVersion()
-	if err != nil {
-		return nil, err
-	}
-	if esVersion == 7 {
-		client, err := createES7Client()
-	} else {
-		client, err := createESClient()
-	}
+	client, err := createESClient()
 	require.NoError(t, err)
 	tests := []struct {
 		envs []string
@@ -99,17 +79,7 @@ func TestIndexCleaner_doNotFailOnFullStorage(t *testing.T) {
 }
 
 func TestIndexCleaner(t *testing.T) {
-	//create client based on ES/OpenSearch version
-	s := &ESStorageIntegration{}
-	esVersion, err := s.getVersion()
-	if err != nil {
-		return nil, err
-	}
-	if esVersion == 7 {
-		client, err := createES7Client()
-	} else {
-		client, err := createESClient()
-	}
+	client, err := createESClient()
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -244,14 +214,18 @@ func runEsRollover(action string, envs []string) error {
 	return err
 }
 
-func createESClient() (*elastic.Client, error) {
+func createESClient() (*Client, error) {
+	s := &ESStorageIntegration{}
+	esVersion, err := s.getVersion()
+	if err != nil {
+		return nil, err
+	}
+	if esVersion == 7 {
+		return olivere7.NewClient(
+			olivere7.SetURL(queryURL),
+			olivere7.SetSniff(false))
+	}
 	return elastic.NewClient(
 		elastic.SetURL(queryURL),
 		elastic.SetSniff(false))
-}
-
-func createES7Client() (*olivere7.Client, error) {
-	return olivere7.NewClient(
-		olivere7.SetURL(queryURL),
-		olivere7.SetSniff(false))
 }
