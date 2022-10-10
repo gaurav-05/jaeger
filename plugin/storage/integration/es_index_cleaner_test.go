@@ -222,8 +222,8 @@ func createESClient() (*elastic.Client, error) {
 	}
 	if esVersion == 7 {
 		return olivere7.NewClient(
-			elastic.SetURL(queryURL),
-			elastic.SetSniff(false))
+			olivere7.SetURL(queryURL),
+			olivere7.SetSniff(false))
 	}
 	return elastic.NewClient(
 		elastic.SetURL(queryURL),
