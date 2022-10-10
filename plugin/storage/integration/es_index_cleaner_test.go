@@ -140,10 +140,11 @@ func TestIndexCleaner(t *testing.T) {
 
 func runIndexCleanerTest(t *testing.T, client *esClient, prefix string, expectedIndices, envVars []string) {
 	// make sure ES is clean
+	var err error
 	if client.client != nil {
-		_, err := client.client.DeleteIndex("*").Do(context.Background())
+		_, err = client.client.DeleteIndex("*").Do(context.Background())
 	} else {
-		_, err := client.client7.DeleteIndex("*").Do(context.Background())
+		_, err = client.client7.DeleteIndex("*").Do(context.Background())
 	}
 	require.NoError(t, err)
 
