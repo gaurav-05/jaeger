@@ -140,7 +140,11 @@ func TestIndexCleaner(t *testing.T) {
 
 func runIndexCleanerTest(t *testing.T, client *esClient, prefix string, expectedIndices, envVars []string) {
 	// make sure ES is clean
-	_, err := client.DeleteIndex("*").Do(context.Background())
+	if client.client != nil {
+		_, err := client.client.DeleteIndex("*").Do(context.Background())
+	} else {
+		_, err := client.client7.DeleteIndex("*").Do(context.Background())
+	}
 	require.NoError(t, err)
 
 	err = createAllIndices(client, prefix)
@@ -242,20 +246,22 @@ func createESClient() (*esClient, error) {
 	s := &ESStorageIntegration{}
 	esVersion, err := s.getVersion()
 	if err != nil {
-		return esClient{}, err
+		return nil, err
 	}
 	if esVersion == 7 {
+		cl, err := olivere7.NewClient(
+			olivere7.SetURL(queryURL),
+			olivere7.SetSniff(false))
 		return esClient{
-			client: nil,
-			client7: olivere7.NewClient(
-				olivere7.SetURL(queryURL),
-				olivere7.SetSniff(false)),
-		}
+			client:  nil,
+			client7: cl,
+		}, err
 	}
+	cl, err := elastic.NewClient(
+		elastic.SetURL(queryURL),
+		elastic.SetSniff(false))
 	return esClient{
-		client: elastic.NewClient(
-			elastic.SetURL(queryURL),
-			elastic.SetSniff(false)),
+		client:  cl,
 		client7: nil,
-	}
+	}, err
 }
