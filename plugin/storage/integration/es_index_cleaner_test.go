@@ -39,10 +39,19 @@ const (
 	rolloverNowEnvVar     = `CONDITIONS='{"max_age":"0s"}'`
 )
 
+type esClient struct {
+	client  *elastic.Client
+	client7 *olivere7.Client
+}
+
 func TestIndexCleaner_doNotFailOnEmptyStorage(t *testing.T) {
 	client, err := createESClient()
 	require.NoError(t, err)
-	_, err = client.DeleteIndex("*").Do(context.Background())
+	if client.client != nil {
+		_, err = client.client.DeleteIndex("*").Do(context.Background())
+	} else {
+		_, err = client.client7.DeleteIndex("*").Do(context.Background())
+	}
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -69,7 +78,11 @@ func TestIndexCleaner_doNotFailOnFullStorage(t *testing.T) {
 		{envs: []string{"ARCHIVE=true"}},
 	}
 	for _, test := range tests {
-		_, err = client.DeleteIndex("*").Do(context.Background())
+		if client.client != nil {
+			_, err = client.DeleteIndex("*").Do(context.Background())
+		} else {
+			_, err = client7.DeleteIndex("*").Do(context.Background())
+		}
 		require.NoError(t, err)
 		err := createAllIndices(client, "")
 		require.NoError(t, err)
@@ -125,7 +138,7 @@ func TestIndexCleaner(t *testing.T) {
 	}
 }
 
-func runIndexCleanerTest(t *testing.T, client *elastic.Client, prefix string, expectedIndices, envVars []string) {
+func runIndexCleanerTest(t *testing.T, client *esClient, prefix string, expectedIndices, envVars []string) {
 	// make sure ES is clean
 	_, err := client.DeleteIndex("*").Do(context.Background())
 	require.NoError(t, err)
@@ -135,7 +148,12 @@ func runIndexCleanerTest(t *testing.T, client *elastic.Client, prefix string, ex
 	err = runEsCleaner(0, envVars)
 	require.NoError(t, err)
 
-	indices, err := client.IndexNames()
+	var indices []string
+	if client.client != nil {
+		indices, err = client.client.IndexNames()
+	} else {
+		indices, err = client.client7.IndexNames()
+	}
 	require.NoError(t, err)
 	if prefix != "" {
 		prefix = prefix + "-"
@@ -147,16 +165,23 @@ func runIndexCleanerTest(t *testing.T, client *elastic.Client, prefix string, ex
 	assert.ElementsMatch(t, indices, expected, fmt.Sprintf("indices found: %v, expected: %v", indices, expected))
 }
 
-func createAllIndices(client *elastic.Client, prefix string) error {
+func createAllIndices(client *esClient, prefix string) error {
 	prefixWithSeparator := prefix
 	if prefix != "" {
 		prefixWithSeparator = prefixWithSeparator + "-"
 	}
 	// create daily indices and archive index
-	err := createEsIndices(client, []string{
-		prefixWithSeparator + spanIndexName, prefixWithSeparator + serviceIndexName,
-		prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
-	})
+	if client.client != nil {
+		err := createEsIndices(client.client, []string{
+			prefixWithSeparator + spanIndexName, prefixWithSeparator + serviceIndexName,
+			prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
+		})
+	} else {
+		err := createEsIndices(client.client7, []string{
+			prefixWithSeparator + spanIndexName, prefixWithSeparator + serviceIndexName,
+			prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
+		})
+	}
 	if err != nil {
 		return err
 	}
@@ -181,10 +206,16 @@ func createAllIndices(client *elastic.Client, prefix string) error {
 	return nil
 }
 
-func createEsIndices(client *elastic.Client, indices []string) error {
+func createEsIndices(client *esClient, indices []string) error {
 	for _, index := range indices {
-		if _, err := client.CreateIndex(index).Do(context.Background()); err != nil {
-			return err
+		if client.client != nil {
+			if _, err := client.client.CreateIndex(index).Do(context.Background()); err != nil {
+				return err
+			}
+		} else {
+			if _, err := client.client7.CreateIndex(index).Do(context.Background()); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -214,18 +245,24 @@ func runEsRollover(action string, envs []string) error {
 	return err
 }
 
-func createESClient() (*Client, error) {
+func createESClient() (*esClient, error) {
 	s := &ESStorageIntegration{}
 	esVersion, err := s.getVersion()
 	if err != nil {
-		return nil, err
+		return esClient{}, err
 	}
 	if esVersion == 7 {
-		return olivere7.NewClient(
-			olivere7.SetURL(queryURL),
-			olivere7.SetSniff(false))
+		return esClient{
+			client: nil,
+			client7: olivere7.NewClient(
+				olivere7.SetURL(queryURL),
+				olivere7.SetSniff(false)),
+		}
 	}
-	return elastic.NewClient(
-		elastic.SetURL(queryURL),
-		elastic.SetSniff(false))
+	return esClient{
+		client: elastic.NewClient(
+			elastic.SetURL(queryURL),
+			elastic.SetSniff(false)),
+		client7: nil,
+	}
 }
