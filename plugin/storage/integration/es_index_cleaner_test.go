@@ -245,6 +245,10 @@ func runEsRollover(action string, envs []string) error {
 
 func createESClient() (esClient, error) {
 	s := &ESStorageIntegration{}
+	cl, err := elastic.NewClient(
+		elastic.SetURL(queryURL),
+		elastic.SetSniff(false))
+	s.client = cl
 	esVersion, err := s.getVersion()
 	if err != nil {
 		return esClient{}, err
@@ -258,9 +262,6 @@ func createESClient() (esClient, error) {
 			client7: cl,
 		}, err
 	}
-	cl, err := elastic.NewClient(
-		elastic.SetURL(queryURL),
-		elastic.SetSniff(false))
 	return esClient{
 		client:  cl,
 		client7: nil,
