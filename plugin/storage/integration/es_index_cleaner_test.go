@@ -79,9 +79,9 @@ func TestIndexCleaner_doNotFailOnFullStorage(t *testing.T) {
 	}
 	for _, test := range tests {
 		if client.client != nil {
-			_, err = client.DeleteIndex("*").Do(context.Background())
+			_, err = client.client.DeleteIndex("*").Do(context.Background())
 		} else {
-			_, err = client7.DeleteIndex("*").Do(context.Background())
+			_, err = client.client7.DeleteIndex("*").Do(context.Background())
 		}
 		require.NoError(t, err)
 		err := createAllIndices(client, "")
@@ -171,17 +171,10 @@ func createAllIndices(client *esClient, prefix string) error {
 		prefixWithSeparator = prefixWithSeparator + "-"
 	}
 	// create daily indices and archive index
-	if client.client != nil {
-		err := createEsIndices(client.client, []string{
-			prefixWithSeparator + spanIndexName, prefixWithSeparator + serviceIndexName,
-			prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
-		})
-	} else {
-		err := createEsIndices(client.client7, []string{
-			prefixWithSeparator + spanIndexName, prefixWithSeparator + serviceIndexName,
-			prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
-		})
-	}
+	err := createEsIndices(client, []string{
+		prefixWithSeparator + spanIndexName, prefixWithSeparator + serviceIndexName,
+		prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
+	})
 	if err != nil {
 		return err
 	}
