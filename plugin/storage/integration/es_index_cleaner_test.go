@@ -243,7 +243,7 @@ func runEsRollover(action string, envs []string) error {
 	return err
 }
 
-func createESClient() (*esClient, error) {
+func createESClient() (esClient, error) {
 	s := &ESStorageIntegration{}
 	esVersion, err := s.getVersion()
 	if err != nil {
