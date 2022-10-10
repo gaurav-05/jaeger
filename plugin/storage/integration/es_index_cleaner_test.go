@@ -138,7 +138,7 @@ func TestIndexCleaner(t *testing.T) {
 	}
 }
 
-func runIndexCleanerTest(t *testing.T, client *esClient, prefix string, expectedIndices, envVars []string) {
+func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedIndices, envVars []string) {
 	// make sure ES is clean
 	var err error
 	if client.client != nil {
@@ -170,7 +170,7 @@ func runIndexCleanerTest(t *testing.T, client *esClient, prefix string, expected
 	assert.ElementsMatch(t, indices, expected, fmt.Sprintf("indices found: %v, expected: %v", indices, expected))
 }
 
-func createAllIndices(client *esClient, prefix string) error {
+func createAllIndices(client esClient, prefix string) error {
 	prefixWithSeparator := prefix
 	if prefix != "" {
 		prefixWithSeparator = prefixWithSeparator + "-"
@@ -247,7 +247,7 @@ func createESClient() (esClient, error) {
 	s := &ESStorageIntegration{}
 	esVersion, err := s.getVersion()
 	if err != nil {
-		return nil, err
+		return esClient{}, err
 	}
 	if esVersion == 7 {
 		cl, err := olivere7.NewClient(
