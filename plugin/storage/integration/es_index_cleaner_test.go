@@ -204,7 +204,7 @@ func createAllIndices(client esClient, prefix string) error {
 	return nil
 }
 
-func createEsIndices(client *esClient, indices []string) error {
+func createEsIndices(client esClient, indices []string) error {
 	for _, index := range indices {
 		if client.client != nil {
 			if _, err := client.client.CreateIndex(index).Do(context.Background()); err != nil {
