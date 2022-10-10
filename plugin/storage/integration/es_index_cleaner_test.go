@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/olivere/elastic"
+	olivere7 "github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -214,6 +215,16 @@ func runEsRollover(action string, envs []string) error {
 }
 
 func createESClient() (*elastic.Client, error) {
+	s := &ESStorageIntegration{}
+	esVersion, err := s.getVersion()
+	if err != nil {
+		return nil, err
+	}
+	if esVersion == 7 {
+		return olivere7.NewClient(
+			elastic.SetURL(queryURL),
+			elastic.SetSniff(false))
+	}
 	return elastic.NewClient(
 		elastic.SetURL(queryURL),
 		elastic.SetSniff(false))
