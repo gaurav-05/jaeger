@@ -151,6 +151,7 @@ func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedI
 
 	err = createAllIndices(client, prefix)
 	if err != nil {
+		fmt.Println("Hell : ", err.Error())
 		_, filename, line, _ := runtime.Caller(0)
 		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 	}
