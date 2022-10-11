@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/olivere/elastic"
-	olivere7 "github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,19 +38,10 @@ const (
 	rolloverNowEnvVar     = `CONDITIONS='{"max_age":"0s"}'`
 )
 
-type esClient struct {
-	client  *elastic.Client
-	client7 *olivere7.Client
-}
-
 func TestIndexCleaner_doNotFailOnEmptyStorage(t *testing.T) {
 	client, err := createESClient()
 	require.NoError(t, err)
-	if client.client != nil {
-		_, err = client.client.DeleteIndex("*").Do(context.Background())
-	} else {
-		_, err = client.client7.DeleteIndex("*").Do(context.Background())
-	}
+	_, err = client.DeleteIndex("*").Do(context.Background())
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -78,11 +68,7 @@ func TestIndexCleaner_doNotFailOnFullStorage(t *testing.T) {
 		{envs: []string{"ARCHIVE=true"}},
 	}
 	for _, test := range tests {
-		if client.client != nil {
-			_, err = client.client.DeleteIndex("*").Do(context.Background())
-		} else {
-			_, err = client.client7.DeleteIndex("*").Do(context.Background())
-		}
+		_, err = client.DeleteIndex("*").Do(context.Background())
 		require.NoError(t, err)
 		err := createAllIndices(client, "")
 		require.NoError(t, err)
@@ -138,14 +124,9 @@ func TestIndexCleaner(t *testing.T) {
 	}
 }
 
-func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedIndices, envVars []string) {
+func runIndexCleanerTest(t *testing.T, client *elastic.Client, prefix string, expectedIndices, envVars []string) {
 	// make sure ES is clean
-	var err error
-	if client.client != nil {
-		_, err = client.client.DeleteIndex("*").Do(context.Background())
-	} else {
-		_, err = client.client7.DeleteIndex("*").Do(context.Background())
-	}
+	_, err := client.DeleteIndex("*").Do(context.Background())
 	require.NoError(t, err)
 
 	err = createAllIndices(client, prefix)
@@ -153,12 +134,7 @@ func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedI
 	err = runEsCleaner(0, envVars)
 	require.NoError(t, err)
 
-	var indices []string
-	if client.client != nil {
-		indices, err = client.client.IndexNames()
-	} else {
-		indices, err = client.client7.IndexNames()
-	}
+	indices, err := client.IndexNames()
 	require.NoError(t, err)
 	if prefix != "" {
 		prefix = prefix + "-"
@@ -170,7 +146,7 @@ func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedI
 	assert.ElementsMatch(t, indices, expected, fmt.Sprintf("indices found: %v, expected: %v", indices, expected))
 }
 
-func createAllIndices(client esClient, prefix string) error {
+func createAllIndices(client *elastic.Client, prefix string) error {
 	prefixWithSeparator := prefix
 	if prefix != "" {
 		prefixWithSeparator = prefixWithSeparator + "-"
@@ -204,16 +180,10 @@ func createAllIndices(client esClient, prefix string) error {
 	return nil
 }
 
-func createEsIndices(client esClient, indices []string) error {
+func createEsIndices(client *elastic.Client, indices []string) error {
 	for _, index := range indices {
-		if client.client != nil {
-			if _, err := client.client.CreateIndex(index).Do(context.Background()); err != nil {
-				return err
-			}
-		} else {
-			if _, err := client.client7.CreateIndex(index).Do(context.Background()); err != nil {
-				return err
-			}
+		if _, err := client.CreateIndex(index).Do(context.Background()); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -243,27 +213,8 @@ func runEsRollover(action string, envs []string) error {
 	return err
 }
 
-func createESClient() (esClient, error) {
-	s := &ESStorageIntegration{}
-	cl, err := elastic.NewClient(
+func createESClient() (*elastic.Client, error) {
+	return elastic.NewClient(
 		elastic.SetURL(queryURL),
 		elastic.SetSniff(false))
-	s.client = cl
-	esVersion, err := s.getVersion()
-	if err != nil {
-		return esClient{}, err
-	}
-	if esVersion == 7 {
-		cl, err := olivere7.NewClient(
-			olivere7.SetURL(queryURL),
-			olivere7.SetSniff(false))
-		return esClient{
-			client:  nil,
-			client7: cl,
-		}, err
-	}
-	return esClient{
-		client:  cl,
-		client7: nil,
-	}, err
 }
