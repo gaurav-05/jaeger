@@ -208,10 +208,14 @@ func createEsIndices(client esClient, indices []string) error {
 	for _, index := range indices {
 		if client.client != nil {
 			if _, err := client.client.CreateIndex(index).Do(context.Background()); err != nil {
+				_, filename, line, _ := runtime.Caller(1)
+				fmt.Println("[error] %s:%d %v for %s", filename, line, err, index)
 				return err
 			}
 		} else {
 			if _, err := client.client7.CreateIndex(index).Do(context.Background()); err != nil {
+				_, filename, line, _ := runtime.Caller(1)
+				fmt.Println("[error] %s:%d %v for %s", filename, line, err, index)
 				return err
 			}
 		}
