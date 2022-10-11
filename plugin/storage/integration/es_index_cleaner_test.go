@@ -27,6 +27,7 @@ import (
 	olivere7 "github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"runtime"
 )
 
 const (
