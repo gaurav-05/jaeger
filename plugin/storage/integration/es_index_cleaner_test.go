@@ -27,7 +27,6 @@ import (
 	olivere7 "github.com/olivere/elastic/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"runtime"
 )
 
 const (
@@ -150,11 +149,6 @@ func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedI
 	require.NoError(t, err)
 
 	err = createAllIndices(client, prefix)
-	if err != nil {
-		fmt.Println("Hell : ", err.Error())
-		_, filename, line, _ := runtime.Caller(0)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
-	}
 	require.NoError(t, err)
 	err = runEsCleaner(0, envVars)
 	require.NoError(t, err)
@@ -187,34 +181,24 @@ func createAllIndices(client esClient, prefix string) error {
 		prefixWithSeparator + dependenciesIndexName, prefixWithSeparator + archiveIndexName,
 	})
 	if err != nil {
-		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	// create rollover archive index and roll alias to the new index
 	err = runEsRollover("init", []string{"ARCHIVE=true", "INDEX_PREFIX=" + prefix})
 	if err != nil {
-		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	err = runEsRollover("rollover", []string{"ARCHIVE=true", "INDEX_PREFIX=" + prefix, rolloverNowEnvVar})
 	if err != nil {
-		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	// create rollover main indices and roll over to the new index
 	err = runEsRollover("init", []string{"ARCHIVE=false", "INDEX_PREFIX=" + prefix})
 	if err != nil {
-		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	err = runEsRollover("rollover", []string{"ARCHIVE=false", "INDEX_PREFIX=" + prefix, rolloverNowEnvVar})
 	if err != nil {
-		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	return nil
@@ -224,14 +208,10 @@ func createEsIndices(client esClient, indices []string) error {
 	for _, index := range indices {
 		if client.client != nil {
 			if _, err := client.client.CreateIndex(index).Do(context.Background()); err != nil {
-				_, filename, line, _ := runtime.Caller(1)
-				fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
 				return err
 			}
 		} else {
 			if _, err := client.client7.CreateIndex(index).Do(context.Background()); err != nil {
-				_, filename, line, _ := runtime.Caller(1)
-				fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
 				return err
 			}
 		}
@@ -259,7 +239,7 @@ func runEsRollover(action string, envs []string) error {
 	args := fmt.Sprintf("docker run %s --rm --net=host %s %s http://%s", dockerEnv, rolloverImage, action, queryHostPort)
 	cmd := exec.Command("/bin/sh", "-c", args)
 	out, err := cmd.CombinedOutput()
-	fmt.Println("Hell1: #####\n", string(out), "\n#####")
+	fmt.Println(string(out))
 	return err
 }
 
