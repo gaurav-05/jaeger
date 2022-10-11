@@ -259,7 +259,7 @@ func runEsRollover(action string, envs []string) error {
 	args := fmt.Sprintf("docker run %s --rm --net=host %s %s http://%s", dockerEnv, rolloverImage, action, queryHostPort)
 	cmd := exec.Command("/bin/sh", "-c", args)
 	out, err := cmd.CombinedOutput()
-	fmt.Println(string(out))
+	fmt.Println("Hell1: ", string(out), "Err1: ", err.Error())
 	return err
 }
 
