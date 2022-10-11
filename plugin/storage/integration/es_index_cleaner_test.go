@@ -183,33 +183,33 @@ func createAllIndices(client esClient, prefix string) error {
 	})
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
+		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	// create rollover archive index and roll alias to the new index
 	err = runEsRollover("init", []string{"ARCHIVE=true", "INDEX_PREFIX=" + prefix})
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
+		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	err = runEsRollover("rollover", []string{"ARCHIVE=true", "INDEX_PREFIX=" + prefix, rolloverNowEnvVar})
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
+		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	// create rollover main indices and roll over to the new index
 	err = runEsRollover("init", []string{"ARCHIVE=false", "INDEX_PREFIX=" + prefix})
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
+		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	err = runEsRollover("rollover", []string{"ARCHIVE=false", "INDEX_PREFIX=" + prefix, rolloverNowEnvVar})
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)
-		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, index)
+		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
 		return err
 	}
 	return nil
