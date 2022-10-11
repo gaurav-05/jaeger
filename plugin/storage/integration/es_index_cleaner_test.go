@@ -150,6 +150,10 @@ func runIndexCleanerTest(t *testing.T, client esClient, prefix string, expectedI
 	require.NoError(t, err)
 
 	err = createAllIndices(client, prefix)
+	if err != nil {
+		_, filename, line, _ := runtime.Caller(0)
+		fmt.Printf("[error] %s:%d %v for %s \n", filename, line, err, prefix)
+	}
 	require.NoError(t, err)
 	err = runEsCleaner(0, envVars)
 	require.NoError(t, err)
